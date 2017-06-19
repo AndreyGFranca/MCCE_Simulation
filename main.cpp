@@ -26,10 +26,9 @@ typedef struct Celula{
 				 *down, 
 				 *up_right, 
 				 *up_left, 
-				 *down_right, 
-				 *down_left;
+				 *down_right; 
+				 //*down_left;
 
-	unsigned int linha, coluna;
 
 }Celula;
 
@@ -37,7 +36,7 @@ typedef struct Celula{
 
 const int 			SAMPLES 	= 10;
 const int           Q = 200;
-const int         	N = pow(256, 2);
+const int         	N = pow(512, 2);
 const int         	N_sqrt = sqrt(N) + 0.5;
 const float      	eta = 0.72;
 const float      	sigma = sqrt(eta / (N * PI));
@@ -45,6 +44,10 @@ const float      	D = N_sqrt;
 const float      	delxy = 1.0/ (2.0 * N_sqrt);
 const float        two_delxy = 2.0 * delxy;
 
+
+void calc_psi(){
+	return;
+}
 
 void novoL(mt_state* state, 
 	Disk (&disk)[N_sqrt][N_sqrt], 
@@ -88,101 +91,92 @@ int main(){
 			// Se for a primeira  célula da grade
 			if(i == 0 && j == 0){
 				// Armazenando a linha e a coluna da celula
-				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][N_sqrt-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[N_sqrt-1][j];
 				celula[i][j].down_right = &celula[N_sqrt-1][j+1];
-				celula[i][j].down_left = &celula[N_sqrt-1][N_sqrt-1];
+				//celula[i][j].down_left = &celula[N_sqrt-1][N_sqrt-1];
 				celula[i][j].up_right = &celula[i+1][j+1];
 				celula[i][j].up_left = &celula[i+1][N_sqrt-1];
 			}
 			else if(i == 0 && j == N_sqrt-1){
-				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[0][0];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[N_sqrt-1][j];
 				celula[i][j].down_right = &celula[N_sqrt-1][0];
-				celula[i][j].down_left = &celula[N_sqrt-1][j-1];
+				//celula[i][j].down_left = &celula[N_sqrt-1][j-1];
 				celula[i][j].up_right = &celula[i+1][0];
 				celula[i][j].up_left = &celula[i+1][j-1];
 			}
 			else if(i==N_sqrt-1 && j == 0){
-				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][N_sqrt-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[0][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][j+1];
-				celula[i][j].down_left = &celula[i-1][N_sqrt-1];
+				//celula[i][j].down_left = &celula[i-1][N_sqrt-1];
 				celula[i][j].up_right = &celula[0][j+1];
 				celula[i][j].up_left = &celula[N_sqrt-1][N_sqrt-1];
 			}
 			else if(i == N_sqrt-1 && j == N_sqrt-1){
-				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][0];
 				celula[i][j].upper = &celula[0][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][0];
-				celula[i][j].down_left = &celula[i-1][j-1];
+				//celula[i][j].down_left = &celula[i-1][j-1];
 				celula[i][j].up_right = &celula[0][0];
 				celula[i][j].up_left = &celula[0][j-1];
 			}
 			else if(i > 0 && i <= N_sqrt-2 && j == 0){
-				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][N_sqrt-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][j+1];
-				celula[i][j].down_left = &celula[i-1][N_sqrt-1];
+				//celula[i][j].down_left = &celula[i-1][N_sqrt-1];
 				celula[i][j].up_right = &celula[i+1][j+1];
 				celula[i][j].up_left = &celula[i+1][N_sqrt-1];
 			}
 			else if(j > 0 && j < N_sqrt-1 && i == 0){
-				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[N_sqrt-1][j];
 				celula[i][j].down_right = &celula[N_sqrt-1][j+1];
-				celula[i][j].down_left = &celula[N_sqrt-1][j-1]; 
+				//celula[i][j].down_left = &celula[N_sqrt-1][j-1]; 
 				celula[i][j].up_right = &celula[i+1][j+1];
 				celula[i][j].up_left = &celula[i+1][j-1];
 			}
 			else if(i > 0 && i <= N_sqrt-2 && j == N_sqrt-1){
-				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][0];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][0];
-				celula[i][j].down_left = &celula[i-1][j-1];
+				//celula[i][j].down_left = &celula[i-1][j-1];
 				celula[i][j].up_right = &celula[i+1][0];
 				celula[i][j].up_left = &celula[i+1][j-1];
 			}
 			else if(j > 0 && j <= N_sqrt-2 && i == N_sqrt-1){
-				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[0][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][j+1];
-				celula[i][j].down_left = &celula[i-1][j-1];
+				//celula[i][j].down_left = &celula[i-1][j-1];
 				celula[i][j].up_right = &celula[0][j+1];
 				celula[i][j].up_left = &celula[0][j-1];
 			}
 			else{
-				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][j+1];
-				celula[i][j].down_left = &celula[i-1][j-1];
+				//celula[i][j].down_left = &celula[i-1][j-1];
 				celula[i][j].up_right = &celula[i+1][j+1];
 				celula[i][j].up_left = &celula[i+1][j-1];
 			}
@@ -376,24 +370,6 @@ void novoL(mt_state* state, Disk (&disk)[N_sqrt][N_sqrt], Celula (&celula)[N_sqr
 		    }
 		    aux = aux->left;
 	    }
-
-
-	    aux = celula[l][c].down_left;
-	    for (int i = 0; i < 2; ++i)
-	    {
-	    	for (int i = 0; i < aux->lista_discos.size(); i++){
-				float event_b = event(aux->lista_discos[i]->x, 
-					aux->lista_discos[i]->y, a->x, a->y, dirc, sigma);
-				if (event_b < event_min){
-					event_min = event_b;
-					std::cout << "Entrou na celula up_right" << std::endl;
-					next_a = aux->lista_discos[i];
-				}
-		    }
-		    aux = aux->down;
-	    }
-
-
 
 
         if (dirc == 1){
