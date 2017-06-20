@@ -7,10 +7,14 @@
 #include <string> 
 #include "mtwist.h"
 #include <sstream>
+#include <cstdio>
+#include <ctime>
+#include <sys/time.h>
+#include <complex>
 
 // Macro para conversão de string para numero
 #define SSTR( x ) static_cast< std::ostringstream & >( \
-        ( std::ostringstream() << std::dec << x ) ).str()
+		( std::ostringstream() << std::dec << x ) ).str()
 
 typedef struct Disk{
 	float x, y;
@@ -26,62 +30,176 @@ typedef struct Celula{
 				 *down, 
 				 *up_right, 
 				 *up_left, 
-				 *down_right; 
-				 //*down_left;
+				 *down_right, 
+				 *down_left;
 
+	unsigned int linha, coluna;
 
 }Celula;
 
 #define PI (3.14159265358979323846)
 
-const int 			SAMPLES 	= 10;
-const int           Q = 200;
-const int         	N = pow(512, 2);
+const int 			samples = 1;
+const int           Q = 50;
+const int         	N = pow(64, 2);
 const int         	N_sqrt = sqrt(N) + 0.5;
-const float      	eta = 0.72;
-const float      	sigma = sqrt(eta / (N * PI));
-const float      	D = N_sqrt;
-const float      	delxy = 1.0/ (2.0 * N_sqrt);
-const float        two_delxy = 2.0 * delxy;
+const int 			vezes = 2;
+const double      	eta = 0.5;
+const double      	sigma = sqrt(eta / (N * PI));
+//const double      	D = N_sqrt;
+const double      	D = 0.1;
+const double      	delxy = 1.0/ (2.0 * N_sqrt);
+const double        two_delxy = 2.0 * delxy;
 
 
-void calc_psi(){
-	return;
+void delx_dely(double L_jx, double L_jy, double L_kx, double L_ky, double *dx, double *dy)
+{
+    double d_x, d_y;
+
+    d_x = fmod((L_jx - L_kx), 1.0);
+    if (d_x > 0.5) d_x -= 1.0;
+    d_y = fmod((L_jy - L_ky), 1.0);
+    if (d_y > 0.5) d_y -= 1.0;
+
+    *dx = d_x;
+    *dy = d_y;
 }
 
-void novoL(mt_state* state, 
-	Disk (&disk)[N_sqrt][N_sqrt], 
-	Celula (&celula)[N_sqrt][N_sqrt],
-	float D, 
-	float sigma,
-	int N_sqrt);
+double dist(double L_kx, double L_ky, double L_jx, double L_jy)
+{
+    double d_x, d_y;
 
-float event(float b_x, 
-	float b_y, 
-	float a_x, 
-	float a_y, 
-	int dirc, 
-	float sigma);
+    d_x = fmod(fabs(L_kx - L_jx), 1.0);
+    d_x = fmin(d_x, 1.0 - d_x);
 
-/*void encontra_disco(Disk disco, Celula (&celula)[N_sqrt][N_sqrt], int* _i, int* _j, const int N_sqrt);*/
-
-int main(){
-	Celula 			celula[N_sqrt][N_sqrt];
-	Disk 			disk[N_sqrt][N_sqrt];
-	mt_state 		state[50];
-
-	unsigned int id_count = 1;
+    d_y = fmod(fabs(L_ky - L_jy), 1.0);
+    d_y = fmin(d_y, 1.0 - d_y);
 
 
-	//gerando configuração inicial
-	for (int i = 0; i < N_sqrt; i++){
-		for (int j = 0; j < N_sqrt; j++){
-			disk[i][j].x = delxy + i * two_delxy;
-			disk[i][j].y = delxy + j * two_delxy;
-			disk[i][j].id = id_count++;
+    return sqrt(fabs(pow(d_x, 2) + pow(d_y, 2)) );
+}
+
+std::complex<double> calc_psi_k(Disk disk_k, 
+	Celula cell_k,
+	unsigned int k)
+{
+	int n_neighbor = 0;
+	float gamma = 3.0 * sigma;
+	std::vector<Disk*> k_list;
+	double dx, dy, angle;
+	Celula* aux;
+	std::complex<double> vetor(0.0, 0.0);
+
+	for (int j = 0; j < 9; ++j)
+	{
+		if(j == 0)
+			aux = cell_k.right;
+		else if(j == 1)
+			aux = cell_k.up_right;
+		else if (j == 2)
+			aux = cell_k.upper;
+		else if (j == 3)
+			aux = cell_k.up_left;
+		else if(j == 4)
+			aux = cell_k.left;
+		else if(j == 5)
+			aux = cell_k.down_left;
+		else if (j == 6)
+			aux - cell_k.down;
+		else if (j == 7)
+			aux = cell_k.down_right;
+		else if (j == 8)
+			aux = &cell_k;
+
+		for (int i = 0; i < aux->lista_discos.size(); ++i)
+		{
+			if(dist(disk_k.x, disk_k.y, aux->lista_discos[i]->x, 
+				aux->lista_discos[i]->y) < gamma){
+				n_neighbor++;
+				delx_dely(disk_k.x, disk_k.y, aux->lista_discos[i]->x, 
+					aux->lista_discos[i]->y, &dx, &dy);
+				angle = std::arg(std::complex<double>(dx, dy));
+				vetor += std::exp(std::complex<double>(0.0,6.0) * std::complex<double>(angle, 0));
+			}
+		}	
+			
+	}
+
+	if (n_neighbor > 0)
+	{
+		vetor /= n_neighbor;	
+	}
+
+	return vetor;
+}
+
+std::complex<double> calc_psi_global(Disk (&disk)[N_sqrt][N_sqrt], Celula (&celula)[N_sqrt][N_sqrt])
+{
+	std::complex<double> sum_vetor(0.0, 0.0);
+	for (int i = 0; i < N_sqrt; ++i)
+	{	
+		for (int j = 0; j < N_sqrt; ++j)
+		{
+			unsigned int ci = ceil(disk[i][j].x / two_delxy) - 1; // coluna
+			unsigned int cj = ceil(disk[i][j].y / two_delxy) - 1;
+			sum_vetor += calc_psi_k(disk[i][j], celula[ci][cj], 0);
 		}
 	}
 
+	return sum_vetor / (double)N;
+}
+
+void novoL(Disk (&disk)[N_sqrt][N_sqrt], 
+	Celula (&celula)[N_sqrt][N_sqrt],
+	double D, 
+	double sigma,
+	int N_sqrt);
+
+double event(double b_x, 
+	double b_y, 
+	double a_x, 
+	double a_y, 
+	int dirc, 
+	double sigma);
+
+
+time_t timer;
+char buffer[26];
+struct tm* tm_info;
+
+int main(){
+
+	double Psi_mod[Q], Psi_mod_sq[Q], erroPsi[Q];
+	std::complex<double> Psi(0.0, 0.0);
+	FILE *resultados   = fopen("resultados.csv", "w");
+
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+
+	Celula 			celula[N_sqrt][N_sqrt];
+	Disk 			disk[N_sqrt][N_sqrt];
+	//mt_state 		state[50];
+	double duracao;
+
+	time(&timer);
+	tm_info = localtime(&timer);
+
+	strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+	puts(buffer);
+
+	unsigned int id_count = 1;
+
+	printf("Raiz do numero de discos N0: %d\n", N_sqrt);
+	printf("Numero de iteracoes Q: %d\n", Q);
+	printf("Densidade eta: %f\n", eta);
+	printf("Numero de amostras: %d\n", samples);
+	printf("Numero de vezes: %d\n", vezes);
+
+	/****************************************************
+	 * 			  DESCOBRINDO AS VIZINHAS 				*
+	 * Atribuindo a cada célula o endereço de suas célul*
+	 * as vizinhas.										*
+	 ****************************************************/
 	for (int i = 0; i < N_sqrt; ++i)
 	{
 		for (int j = 0; j < N_sqrt; ++j)
@@ -91,92 +209,101 @@ int main(){
 			// Se for a primeira  célula da grade
 			if(i == 0 && j == 0){
 				// Armazenando a linha e a coluna da celula
+				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][N_sqrt-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[N_sqrt-1][j];
 				celula[i][j].down_right = &celula[N_sqrt-1][j+1];
-				//celula[i][j].down_left = &celula[N_sqrt-1][N_sqrt-1];
+				celula[i][j].down_left = &celula[N_sqrt-1][N_sqrt-1];
 				celula[i][j].up_right = &celula[i+1][j+1];
 				celula[i][j].up_left = &celula[i+1][N_sqrt-1];
 			}
 			else if(i == 0 && j == N_sqrt-1){
+				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[0][0];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[N_sqrt-1][j];
 				celula[i][j].down_right = &celula[N_sqrt-1][0];
-				//celula[i][j].down_left = &celula[N_sqrt-1][j-1];
+				celula[i][j].down_left = &celula[N_sqrt-1][j-1];
 				celula[i][j].up_right = &celula[i+1][0];
 				celula[i][j].up_left = &celula[i+1][j-1];
 			}
 			else if(i==N_sqrt-1 && j == 0){
+				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][N_sqrt-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[0][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][j+1];
-				//celula[i][j].down_left = &celula[i-1][N_sqrt-1];
+				celula[i][j].down_left = &celula[i-1][N_sqrt-1];
 				celula[i][j].up_right = &celula[0][j+1];
 				celula[i][j].up_left = &celula[N_sqrt-1][N_sqrt-1];
 			}
 			else if(i == N_sqrt-1 && j == N_sqrt-1){
+				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][0];
 				celula[i][j].upper = &celula[0][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][0];
-				//celula[i][j].down_left = &celula[i-1][j-1];
+				celula[i][j].down_left = &celula[i-1][j-1];
 				celula[i][j].up_right = &celula[0][0];
 				celula[i][j].up_left = &celula[0][j-1];
 			}
 			else if(i > 0 && i <= N_sqrt-2 && j == 0){
+				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][N_sqrt-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][j+1];
-				//celula[i][j].down_left = &celula[i-1][N_sqrt-1];
+				celula[i][j].down_left = &celula[i-1][N_sqrt-1];
 				celula[i][j].up_right = &celula[i+1][j+1];
 				celula[i][j].up_left = &celula[i+1][N_sqrt-1];
 			}
 			else if(j > 0 && j < N_sqrt-1 && i == 0){
+				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[N_sqrt-1][j];
 				celula[i][j].down_right = &celula[N_sqrt-1][j+1];
-				//celula[i][j].down_left = &celula[N_sqrt-1][j-1]; 
+				celula[i][j].down_left = &celula[N_sqrt-1][j-1]; 
 				celula[i][j].up_right = &celula[i+1][j+1];
 				celula[i][j].up_left = &celula[i+1][j-1];
 			}
 			else if(i > 0 && i <= N_sqrt-2 && j == N_sqrt-1){
+				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][0];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][0];
-				//celula[i][j].down_left = &celula[i-1][j-1];
+				celula[i][j].down_left = &celula[i-1][j-1];
 				celula[i][j].up_right = &celula[i+1][0];
 				celula[i][j].up_left = &celula[i+1][j-1];
 			}
 			else if(j > 0 && j <= N_sqrt-2 && i == N_sqrt-1){
+				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[0][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][j+1];
-				//celula[i][j].down_left = &celula[i-1][j-1];
+				celula[i][j].down_left = &celula[i-1][j-1];
 				celula[i][j].up_right = &celula[0][j+1];
 				celula[i][j].up_left = &celula[0][j-1];
 			}
 			else{
+				celula[i][j].linha = i; celula[i][j].coluna = j;
 				celula[i][j].left = &celula[i][j-1];
 				celula[i][j].right = &celula[i][j+1];
 				celula[i][j].upper = &celula[i+1][j];
 				celula[i][j].down = &celula[i-1][j];
 				celula[i][j].down_right = &celula[i-1][j+1];
-				//celula[i][j].down_left = &celula[i-1][j-1];
+				celula[i][j].down_left = &celula[i-1][j-1];
 				celula[i][j].up_right = &celula[i+1][j+1];
 				celula[i][j].up_left = &celula[i+1][j-1];
 			}
@@ -185,7 +312,7 @@ int main(){
 
 
 	/****************************************************
-	 * 			  ADCIONANDO DICOS AS CELULAS  			*
+	 * 			  ADCIONANDO DISCOS AS CELULAS  			*
 	 * Adciona a cada celula, o seu respectivo disco 	*
 	 ****************************************************/
 	for (int i = 0; i < N_sqrt; ++i){
@@ -193,285 +320,437 @@ int main(){
 			celula[i][j].lista_discos.push_back(&disk[j][i]);
 		}
 	}
-	for (int i = 0; i <= Q; i++){
-        
-            std::cout << "\t\t\tITERAÇÃO" << i << std::endl;
-            std::ofstream myfile;
-            std::string s = SSTR( i );
-            std::string s2 = "resultados/" + s;
-            myfile.open (s2.c_str());
-            for (int i = 0; i < N_sqrt; ++i)
-            {
-                for (int j = 0; j < N_sqrt; ++j)
-                {
-                    myfile << disk[i][j].x << "," << disk[i][j].y << std::endl;
-                }
-            }
-            myfile.close();
-		novoL(state, disk, celula, D, sigma, N_sqrt);
-  		
+
+	int ks = 4;
+
+		//gerando configuração inicial quadrado
+	for (int i = 0; i < N_sqrt; i++){
+		for (int j = 0; j < N_sqrt; j++){
+			disk[i][j].x = delxy + i * two_delxy;
+			disk[i][j].y = delxy + j * two_delxy;
+			disk[i][j].id = id_count++;
+		}
 	}
+
+	// Gravando a configuracao inicial em arquivo
+	std::ofstream myfile;
+	std::string s1 = "resultados/LxLy_inicial_N0" + SSTR( N_sqrt ) + "_eta" + SSTR( 100*eta ) + "_se"+SSTR(ks) + "_Q" + SSTR( Q ) + ".csv";
+	myfile.open (s1.c_str());
+	for (int i = 0; i < N_sqrt; ++i)
+	{
+		for (int j = 0; j < N_sqrt; ++j)
+		{
+			myfile << disk[i][j].x << "," << disk[i][j].y << std::endl;
+		}
+	}
+	myfile.close();
+
+
+
+	//gerando configuração inicial triangular
+	// int cont = 0;
+	// for (int i = 0; i < N_sqrt; i++){
+	// 	for (int j = 0; j < N_sqrt; j++){
+	// 		if(j%2 == 0){
+	// 			disk[i][j].x = delxy + i * two_delxy;
+	// 			disk[i][j].y = delxy + j * two_delxy;
+	// 			disk[i][j].id = id_count++;
+	// 		}
+	// 		else{
+	// 			disk[i][j].x = (delxy + i * two_delxy) + delxy;
+	// 			disk[i][j].y = delxy + j * two_delxy;
+	// 			disk[i][j].id = id_count++;
+	// 		}
+	// 	}
+	// }
+
+	
+	mt_seed32(ks);
+
+	for (int i = 0; i <= Q; i++){
+
+
+		if(i % vezes == 0){
+			std::ofstream myfile;
+			std::string s = SSTR( i );
+			printf("Iniciando iteracao: %d\n", i);
+			std::string s2 = "resultados/LxLy_N0" + SSTR( N_sqrt )  + "_eta" + SSTR( 100*eta )+ "_se" + SSTR( ks ) + "_t" + SSTR( i )  + ".csv";
+			myfile.open (s2.c_str());
+			for (int i = 0; i < N_sqrt; ++i){
+				for (int j = 0; j < N_sqrt; ++j){
+					myfile << disk[i][j].x << "," << disk[i][j].y << std::endl;
+				}
+			}
+			myfile.close();
+
+			Psi = calc_psi_global(disk, celula);
+			Psi_mod[i] = (double) std::abs(Psi); // SAMPLES;
+			Psi_mod_sq[i] = (double) std::pow( Psi_mod[i], 2); // SAMPLES;
+		}
+		novoL(disk, celula, D, sigma, N_sqrt);
+		
+	} // fecha o for do tempo
+
+	for(int i = 0; i < Q; i++){
+        erroPsi[i] = std::sqrt(std::fabs(Psi_mod_sq[i] - std::pow(Psi_mod[i], 2))); /// (SAMPLES - 1)));
+    }
+
+    for (int i4 = 0; i4 < Q; i4++){
+    	if (i4 % vezes == 0){
+        	fprintf(resultados, "%d, %f, %f\n", i4, Psi_mod[i4], erroPsi[i4]);
+    	}
+    }
+	//Gravando configuracao final em um arquivo
+	std::ofstream myfile2;
+	std::string s3 = "resultados/LxLy_final_N0" + SSTR( N_sqrt ) + "_eta" + SSTR( 100*eta ) + "_se"+SSTR(ks) + "_Q" + SSTR( Q ) + ".csv";
+	myfile2.open (s3.c_str());
+	for (int i = 0; i < N_sqrt; ++i)
+	{
+		for (int j = 0; j < N_sqrt; ++j)
+		{
+			myfile2 << disk[i][j].x << "," << disk[i][j].y << std::endl;
+		}
+	}
+	myfile2.close();
+
+
+	//Tempo final do programa.
+	gettimeofday(&end, NULL);
+	duracao = (((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6);
+
+	printf("Tempo de execucao em segundos: %f\n", duracao);
+	printf("Tempo de execucao em horas: %f\n", duracao / 3600);
+	printf("Tempo de execucao por iteracao e por amostra em segundos: %f\n", duracao / (samples*Q));
+
+	char nome3[60], nome4[60];
+
+	sprintf(nome3, "resultados/parametros_N0%d_eta%.f_S%d_Q%d.csv", N_sqrt,1000*eta,ks,Q);
+	FILE *parametros   = fopen(nome3,"w");
+
+	fprintf(parametros, "Parametros importantes.\n");
+	fprintf(parametros, "Numero de discos N: %d\n", N);
+	fprintf(parametros, "Raiz de N = N0: %d\n", N_sqrt);
+	fprintf(parametros, "Numero de iteracoes Q: %d\n", Q);
+	fprintf(parametros, "Densidade eta: %f\n", eta);
+	fprintf(parametros, "Numero de vezes: %d\n", vezes);
+	fprintf(parametros, "Numero de amostras: %d\n", samples);
+	fprintf(parametros, "Tempo de execucao: %f\n", duracao);
+	fprintf(parametros, "Tempo de execucao em horas: %f\n", duracao / 3600);
+	fprintf(parametros, "Tempo de execucao por iteracao em segundos: %f\n", duracao / (samples*Q));
+
+	sprintf(nome4, "resultados/valores.csv");
+//	sprintf(nome4, "resultados/valores_N0%d_eta%.f_S%d_Q%d.csv", N_sqrt,1000*eta,ks,Q);
+	FILE *valores   = fopen(nome4,"w");
+
+	fprintf(valores, "%d,%f,%d,%d,%d\n", N_sqrt, eta, Q,vezes, ks);
+	printf("Fim.\n");
 
 }
 
-
-void novoL(mt_state* state, Disk (&disk)[N_sqrt][N_sqrt], Celula (&celula)[N_sqrt][N_sqrt], float D, float  sigma, int N_sqrt)
+void novoL(Disk (&disk)[N_sqrt][N_sqrt], Celula (&celula)[N_sqrt][N_sqrt], double D, double  sigma, int N_sqrt)
 {
-    float event_min = 0;
+	 //Variaveis necessarias
+	 //int flag = 0, aux = 1, aux2 = 0, aux3 = 0;
+	 //int i, j;
+	double event_min = 0;
 
-    int dirc = (unsigned int) mts_lrand(state) % 2;
+	 //Gerando direcao aleatoria 0 ou 1
 
-    float distance_to_go = D;
-    std::cout << "\n" << D << "\n";
-    Disk *next_a;
+	int dirc = (unsigned int) mt_lrand() % 2;
 
-    int rand_i1, rand_i2;
+	double distance_to_go = D;
+	//std::cout << "\n" << D << "\n";
+	Disk *next_a;
 
-    rand_i1 = (unsigned int)mts_lrand(state) % N_sqrt ;
-    rand_i2 = (unsigned int)mts_lrand(state) % N_sqrt ;
+	int rand_i1, rand_i2;
 
-    next_a = &disk[rand_i1][rand_i2];
-    std::cout << std::endl;
-    std::cout << "Informações da amostra: \ndirc="<<dirc<< std::endl;
-    std::cout << "==========COMECOU===========" << std::endl;
-    while(distance_to_go > 0.0)
-    {
-    	std::cout << "\n"<<std::endl;
-        Disk* a = next_a;
-        event_min = distance_to_go;
+	 //Gerando posicoes aleatorias.
+	rand_i1 = (unsigned int) mt_lrand() % N_sqrt ;
+	rand_i2 = (unsigned int) mt_lrand() % N_sqrt ;
 
-        unsigned int l = ceil(a->y / two_delxy) - 1; // linha
-        unsigned int c = ceil(a->x / two_delxy) - 1; // coluna
+	 //Gerando o primeiro next_a
+	 //next_a_x = disk[rand_i1][rand_i2].x;
+	 //next_a_y = disk[rand_i1][rand_i2].y;
+	next_a = &disk[rand_i1][rand_i2];
+	// std::cout << std::endl;
+	// std::cout << "Informações da amostra: \ndirc="<<dirc<< std::endl;
+	// std::cout << "==========COMECOU===========" << std::endl;
+	while(distance_to_go > 0.0)
+	{
+		bool flag = false;
+		Disk* a = next_a;
+		event_min = distance_to_go;
 
-        std::cout << "Informações do disco:\n Celula (" << l << ", "<<c<<")"<<"\nid="<<a->id<<std::endl;
+		// Descobrimos em qual linha e coluna o disco está:
+		unsigned int l = ceil(a->y / two_delxy) - 1; // linha
+		unsigned int c = ceil(a->x / two_delxy) - 1; // coluna
 
-    	Celula* aux;
-	    for (int i = 0; i < celula[l][c].lista_discos.size(); i++){
-	    	if(celula[l][c].lista_discos[i]->id != a->id){
-	    		float event_b = event(celula[l][c].lista_discos[i]->x, 
-	    			celula[l][c].lista_discos[i]->y, a->x, a->y, dirc, sigma);
-	    		if (event_b < event_min){
-	    			std::cout << "O disco esta na propria celula" << std::endl;
-	    			event_min = event_b;
-	    			next_a = celula[l][c].lista_discos[i];
-	    		}
-	    	}
-	    }
-	    // Celula da Direita
-	    aux =  celula[l][c].right;
-	    for (int i = 0; i < 3; ++i)
-	    {
-	    	for (int i = 0; i < aux->lista_discos.size(); i++){
-				float event_b = event(aux->lista_discos[i]->x, 
+		
+		// Calcula a distancia para todos os discos das celulas vizinhas na direcao em que 
+		// o disco esta se movendo:
+		{
+		Celula* aux;
+
+		for (int i = 0; i < celula[l][c].lista_discos.size(); i++){
+			// Se o disco a verificar não for o disco a:
+			if(celula[l][c].lista_discos[i]->id != a->id){
+				//std::cout << celula[l][c].lista_discos.size() << std::endl;
+				// Calcula a distancia:
+				double event_b = event(celula[l][c].lista_discos[i]->x, 
+					celula[l][c].lista_discos[i]->y, a->x, a->y, dirc, sigma);
+				if (event_b < event_min){
+//	    			std::cout << "O disco esta na propria celula" << std::endl;
+					event_min = event_b;
+					next_a = celula[l][c].lista_discos[i];
+				}
+
+			}
+		}
+		// Celula da Direita
+		aux =  celula[l][c].right;
+		for (int i = 0; i < 3; ++i)
+		{
+			for (int i = 0; i < aux->lista_discos.size(); i++){
+				double event_b = event(aux->lista_discos[i]->x, 
 					aux->lista_discos[i]->y, a->x, a->y, dirc, sigma);
 				if (event_b < event_min){
 					event_min = event_b;
-					std::cout << "Entrou na celula up_right" << std::endl;
 					next_a = aux->lista_discos[i];
 				}
-		    }
-		    aux = aux->right;
-	    }
+			}
+			aux = aux->right;
+		}
 
-	    // Celula upper-right
-	    aux =  celula[l][c].up_right;
-	    for (int i = 0; i < 3; ++i)
-	    {
-	    	for (int i = 0; i < aux->lista_discos.size(); i++){
-				float event_b = event(aux->lista_discos[i]->x, 
+		// Celula upper-right
+		aux =  celula[l][c].up_right;
+		for (int i = 0; i < 3; ++i)
+		{
+			for (int i = 0; i < aux->lista_discos.size(); i++){
+				double event_b = event(aux->lista_discos[i]->x, 
 					aux->lista_discos[i]->y, a->x, a->y, dirc, sigma);
 				if (event_b < event_min){
 					event_min = event_b;
-					std::cout << "Entrou na celula up_right" << std::endl;
 					next_a = aux->lista_discos[i];
 				}
-		    }
-		    if(dirc == 0){
-		    	aux = aux->upper;
+			}
+			if(dirc == 0){
+				aux = aux->upper;
 			}
 			else{
 				aux = aux->right;
 			}
-	    }
+		}
 
-	    aux =  celula[l][c].down_right;
-	    for (int i = 0; i < 2; ++i)
-	    {
-	    	for (int i = 0; i < aux->lista_discos.size(); i++){
-				float event_b = event(aux->lista_discos[i]->x, 
+		aux =  celula[l][c].down_right;
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int i = 0; i < aux->lista_discos.size(); i++){
+				double event_b = event(aux->lista_discos[i]->x, 
 					aux->lista_discos[i]->y, a->x, a->y, dirc, sigma);
 				if (event_b < event_min){
 					event_min = event_b;
-					std::cout << "Entrou na celula up_right" << std::endl;
 					next_a = aux->lista_discos[i];
 				}
-		    }
-		    aux = aux->right;
-	    }
+			}
+			aux = aux->right;
+		}
 
-	    // Celula acima
-	    aux =  celula[l][c].upper;
-	    for (int i = 0; i < 2; ++i)
-	    {
-	    	for (int i = 0; i < aux->lista_discos.size(); i++){
-				float event_b = event(aux->lista_discos[i]->x, 
+		aux =  celula[l][c].upper;
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int i = 0; i < aux->lista_discos.size(); i++){
+				double event_b = event(aux->lista_discos[i]->x, 
 					aux->lista_discos[i]->y, a->x, a->y, dirc, sigma);
 				if (event_b < event_min){
 					event_min = event_b;
-					std::cout << "Entrou na celula up_right" << std::endl;
 					next_a = aux->lista_discos[i];
 				}
-		    }
-		    aux = aux->upper;
-	    }
-
-	    aux = celula[l][c].down;
-	    for (int i = 0; i < 2; ++i)
-	    {
-	    	for (int i = 0; i < aux->lista_discos.size(); i++){
-				float event_b = event(aux->lista_discos[i]->x, 
+			}
+			aux = aux->upper;
+		}
+		aux = celula[l][c].down;
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int i = 0; i < aux->lista_discos.size(); i++){
+				double event_b = event(aux->lista_discos[i]->x, 
 					aux->lista_discos[i]->y, a->x, a->y, dirc, sigma);
 				if (event_b < event_min){
 					event_min = event_b;
-					std::cout << "Entrou na celula up_right" << std::endl;
 					next_a = aux->lista_discos[i];
 				}
-		    }
-		    aux = aux->down;
-	    }
+			}
+			aux = aux->down;
+		}
 
-
-	    aux = celula[l][c].up_left;
-	    for (int i = 0; i < 2; ++i)
-	    {
-	    	for (int i = 0; i < aux->lista_discos.size(); i++){
-				float event_b = event(aux->lista_discos[i]->x, 
+		aux = celula[l][c].up_left;
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int i = 0; i < aux->lista_discos.size(); i++){
+				double event_b = event(aux->lista_discos[i]->x, 
 					aux->lista_discos[i]->y, a->x, a->y, dirc, sigma);
 				if (event_b < event_min){
 					event_min = event_b;
-					std::cout << "Entrou na celula up_right" << std::endl;
+//					std::cout << "Entrou na celula up_right" << std::endl;
 					next_a = aux->lista_discos[i];
 				}
-		    }
-		    aux = aux->upper;
-	    }
+			}
+			aux = aux->upper;
+		}
 
-	    aux = celula[l][c].left;
-	    for (int i = 0; i < 2; ++i)
-	    {
-	    	for (int i = 0; i < aux->lista_discos.size(); i++){
-				float event_b = event(aux->lista_discos[i]->x, 
+		aux = celula[l][c].left;
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int i = 0; i < aux->lista_discos.size(); i++){
+				double event_b = event(aux->lista_discos[i]->x, 
 					aux->lista_discos[i]->y, a->x, a->y, dirc, sigma);
 				if (event_b < event_min){
 					event_min = event_b;
-					std::cout << "Entrou na celula up_right" << std::endl;
+//					std::cout << "Entrou na celula up_right" << std::endl;
 					next_a = aux->lista_discos[i];
 				}
-		    }
-		    aux = aux->left;
-	    }
+			}
+			aux = aux->left;
+		}
+
+		aux = celula[l][c].down_left;
+		for (int i = 0; i < 2; ++i)
+		{
+			for (int i = 0; i < aux->lista_discos.size(); i++){
+				double event_b = event(aux->lista_discos[i]->x, 
+					aux->lista_discos[i]->y, a->x, a->y, dirc, sigma);
+				if (event_b < event_min){
+					event_min = event_b;
+//					std::cout << "Entrou na celula up_right" << std::endl;
+					next_a = aux->lista_discos[i];
+				}
+			}
+			aux = aux->down;
+		}
 
 
-        if (dirc == 1){
-        	unsigned int l_anterior = l;
-        	unsigned int c_anterior = c;
-        	a->x = std::fmod((a->x + fabs(event_min-0.0001)), 1.0);
-        	unsigned int c_atual = ceil(a->x / two_delxy) - 1; // coluna
-        	unsigned int l_atual = ceil(a->y / two_delxy) - 1;
-        	if(c_anterior != c_atual || l_atual != l_anterior){
-        		Disk* d;
-        		std::cout << "O Disco atualizou sua posição e mudou de célula:\nCelula Anterior: ("<<l<<", "<<c<<")"<<std::endl;
-        		std::cout << "Celula Atual: (" <<l_atual << ", "<<c_atual<<")"<<std::endl; 
-        		// Vou na celula anterior e removo o disco
-        		for (int i = 0; i < celula[l_anterior][c_anterior].lista_discos.size(); ++i){
-        			if(celula[l_anterior][c_anterior].lista_discos[i]->id == a->id){
+		}
+
+
+		if (dirc == 1){
+			//Verifica qual celula o disco estava;
+			unsigned int l_anterior = l;
+			unsigned int c_anterior = c;
+			//Atualiza a posicao
+			a->x = std::fmod((a->x + fabs(event_min-0.0001)), 1.0);
+			//a->y = std::fmod((a->y + event_min), 1.0);
+			//Verifica novamente a celula
+			unsigned int c_atual = ceil(a->x / two_delxy) - 1; // coluna
+			unsigned int l_atual = ceil(a->y / two_delxy) - 1;
+			//std::cout<< "porra: " <<  c_atual << std::endl;
+			//Se ele mudou de celula
+			if(c_anterior != c_atual || l_atual != l_anterior){
+				Disk* d;
+				//std::cout << "O Disco atualizou sua posição e mudou de célula:\nCelula Anterior: ("<<l<<", "<<c<<")"<<std::endl;
+				//std::cout << "Celula Atual: (" <<l_atual << ", "<<c_atual<<")"<<std::endl; 
+				// Vou na celula anterior e removo o disco
+				for (int i = 0; i < celula[l_anterior][c_anterior].lista_discos.size(); ++i){
+					if(celula[l_anterior][c_anterior].lista_discos[i]->id == a->id){
 						d = celula[l_anterior][c_anterior].lista_discos[i];
-        				celula[l_anterior][c_anterior].lista_discos.erase(celula[l_anterior][c_anterior].lista_discos.begin() + i);
-        				break;
-        			}
-        		}
-        		std::cout << "Verificando se removeu da celula anterior, e atualizou:" << std::endl;
-        		std::cout << "	 ==========================================	 " << std::endl;
-        		for(int i = 0; i < celula[l_anterior][c_anterior].lista_discos.size(); ++i){
-        			std::cout << "ANTERIOR:" <<  celula[l_anterior][c_anterior].lista_discos[i]->id <<  std::endl;
-        		}
-
-        		//Vou na célula atual e armazeno o disco:
-        		celula[l_atual][c_atual].lista_discos.push_back(d);
-        		for(int i = 0; i < celula[l_atual][c_atual].lista_discos.size(); ++i){
-        			std::cout << "NOVA:" <<  celula[l_atual][c_atual].lista_discos[i]->id <<  std::endl;
-        		}
-        		std::cout << "	 ==========================================	 " << std::endl;
-        		
-        	}
-        }
-        else{
-        	unsigned int l_anterior = l;
-        	unsigned int c_anterior = c;
-        	a->y = std::fmod((a->y + fabs(event_min-0.0001)), 1.0);
-        	unsigned int c_atual = ceil(a->x / two_delxy) - 1; // coluna
-        	unsigned int l_atual = ceil(a->y / two_delxy) - 1;
-        	if(l_anterior != l_atual || l_atual != l_anterior){
-        		Disk* d;
-        		std::cout << "O Disco atualizou sua posição e mudou de célula:\nCelula Anterior: ("<<l<<", "<<c<<")"<<std::endl;
-        		std::cout << "Celula Atual: (" <<l_atual << ", "<<c_atual<<")"<<std::endl; 
-        		// Vou na celula anterior e removo o disco
-        		for (int i = 0; i < celula[l_anterior][c_anterior].lista_discos.size(); ++i){
-        			if(celula[l_anterior][c_anterior].lista_discos[i]->id == a->id){
-						d = celula[l_anterior][c_anterior].lista_discos[i];
-        				celula[l_anterior][c_anterior].lista_discos.erase(celula[l_anterior][c_anterior].lista_discos.begin() + i);
-        				break;
-        			}
-        		}
-        		std::cout << "Verificando se removeu da celula anterior, e atualizou:" << std::endl;
-        		std::cout << "	 ==========================================	 " << std::endl;
-        		for(int i = 0; i < celula[l_anterior][c_anterior].lista_discos.size(); ++i){
-        			std::cout << "ANTERIOR:" <<  celula[l_anterior][c_anterior].lista_discos[i]->id <<  std::endl;
-        			/*if(celula[l_anterior][coluna].lista_discos[i]->id == a->id){
+						celula[l_anterior][c_anterior].lista_discos.erase(celula[l_anterior][c_anterior].lista_discos.begin() + i);
+						break;
+					}
+				}
+				//std::cout << "Verificando se removeu da celula anterior, e atualizou:" << std::endl;
+				//std::cout << "	 ==========================================	 " << std::endl;
+				for(int i = 0; i < celula[l_anterior][c_anterior].lista_discos.size(); ++i){
+					//std::cout << "ANTERIOR:" <<  celula[l_anterior][c_anterior].lista_discos[i]->id <<  std::endl;
+					/*if(celula[l_anterior][coluna].lista_discos[i]->id == a->id){
 						std::cout << "TA NA ANTERIOR!!!" << std::endl;
-         			}*/
-        		}
+					}*/
+				}
 
-        		//Vou na célula atual e armazeno o disco:
-        		celula[l_atual][c_atual].lista_discos.push_back(d);
-        		for(int i = 0; i < celula[l_atual][c_atual].lista_discos.size(); ++i){
-        			std::cout << "NOVA:" <<  celula[l_atual][c_atual].lista_discos[i]->id <<  std::endl;
-        			/*if(celula[l_atual][coluna].lista_discos[i]->id == a->id){
+				//Vou na célula atual e armazeno o disco:
+				celula[l_atual][c_atual].lista_discos.push_back(d);
+				for(int i = 0; i < celula[l_atual][c_atual].lista_discos.size(); ++i){
+					//std::cout << "NOVA:" <<  celula[l_atual][c_atual].lista_discos[i]->id <<  std::endl;
+					/*if(celula[l_atual][coluna].lista_discos[i]->id == a->id){
 						std::cout << "TA NA NOVA!!!" << std::endl;
-         			}*/
-        		}
-        		std::cout << "	 ==========================================	 " << std::endl;
-        	}
-        }
-		std::cout << "distance to go ANTERIOR = " << distance_to_go << std::endl << "event_min = "<< event_min << std::endl;
-        distance_to_go -= event_min;
-        std::cout << "dtg = " << distance_to_go << std::endl;
-    }
+					}*/
+				}
+				//std::cout << "	 ==========================================	 " << std::endl;
+				//Vou na célula atual e armazeno o disco:
+				
+			}
+		}
+		else{
+			//a->y = std::fmod((a->x + event_min), 1.0);
+			//Verifica qual celula o disco estava
+			unsigned int l_anterior = l;
+			unsigned int c_anterior = c;
+			//Atualiza a posicao
+			//a->x = std::fmod((a->x + event_min), 1.0);
+			a->y = std::fmod((a->y + fabs(event_min-0.0001)), 1.0);
+			//Verifica novamente a celula
+			unsigned int c_atual = ceil(a->x / two_delxy) - 1; // coluna
+			unsigned int l_atual = ceil(a->y / two_delxy) - 1;
+			//Se ele mudou de celula
+			if(l_anterior != l_atual || l_atual != l_anterior){
+				Disk* d;
+				//std::cout << "O Disco atualizou sua posição e mudou de célula:\nCelula Anterior: ("<<l<<", "<<c<<")"<<std::endl;
+				//std::cout << "Celula Atual: (" <<l_atual << ", "<<c_atual<<")"<<std::endl; 
+				// Vou na celula anterior e removo o disco
+				for (int i = 0; i < celula[l_anterior][c_anterior].lista_discos.size(); ++i){
+					if(celula[l_anterior][c_anterior].lista_discos[i]->id == a->id){
+						d = celula[l_anterior][c_anterior].lista_discos[i];
+						celula[l_anterior][c_anterior].lista_discos.erase(celula[l_anterior][c_anterior].lista_discos.begin() + i);
+						break;
+					}
+				}
+				//std::cout << "Verificando se removeu da celula anterior, e atualizou:" << std::endl;
+				//std::cout << "	 ==========================================	 " << std::endl;
+				for(int i = 0; i < celula[l_anterior][c_anterior].lista_discos.size(); ++i){
+					//std::cout << "ANTERIOR:" <<  celula[l_anterior][c_anterior].lista_discos[i]->id <<  std::endl;
+					/*if(celula[l_anterior][coluna].lista_discos[i]->id == a->id){
+						std::cout << "TA NA ANTERIOR!!!" << std::endl;
+					}*/
+				}
+
+				//Vou na célula atual e armazeno o disco:
+				celula[l_atual][c_atual].lista_discos.push_back(d);
+				for(int i = 0; i < celula[l_atual][c_atual].lista_discos.size(); ++i){
+					//std::cout << "NOVA:" <<  celula[l_atual][c_atual].lista_discos[i]->id <<  std::endl;
+					/*if(celula[l_atual][coluna].lista_discos[i]->id == a->id){
+						std::cout << "TA NA NOVA!!!" << std::endl;
+					}*/
+				}
+				//std::cout << "	 ==========================================	 " << std::endl;
+			}
+		}
+		//std::cout << "distance to go ANTERIOR = " << distance_to_go << std::endl << "event_min = "<< event_min << std::endl;
+		distance_to_go -= event_min;
+		//std::cout << "dtg = " << distance_to_go << std::endl;
+	}
+
 
 }
 
 
-float event(float b_x, float b_y, float a_x, float a_y, int dirc, float sigma)
+double event(double b_x, double b_y, double a_x, double a_y, int dirc, double sigma)
 {
-    float d_perp = 0.0;
-    float d_para = 0.0;
+	double d_perp = 0.0;
+	double d_para = 0.0;
 
-    if (dirc == 1)
-        d_perp = std::fmod(fabs(b_y - a_y), 1.0);
-    else
-        d_perp = std::fmod(fabs(b_x - a_x), 1.0);
+	if (dirc == 1)
+		d_perp = std::fmod(fabs(b_y - a_y), 1.0);
+	else
+		d_perp = std::fmod(fabs(b_x - a_x), 1.0);
 
-    d_perp = fmin(d_perp, 1.0 - d_perp);
-    if (d_perp > 2.0 * sigma)
-        return (float)INFINITY;
-    else{
-        d_para = sqrt(fabs(4.0 * sigma*sigma - d_perp*d_perp));
+	d_perp = fmin(d_perp, 1.0 - d_perp);
+	if (d_perp > 2.0 * sigma)
+		return (double)INFINITY;
+	else{
+		d_para = sqrt(fabs(4.0 * sigma*sigma - d_perp*d_perp));
 
-        if (dirc == 1){
-            return std::fmod((b_x - a_x - d_para + 1.0), 1.0);
-        }
-        else{
-            return std::fmod((b_y - a_y - d_para + 1.0), 1.0);
-        }
-    }
+		if (dirc == 1){
+			return std::fmod((b_x - a_x - d_para + 1.0), 1.0);
+		}
+		else{
+			return std::fmod((b_y - a_y - d_para + 1.0), 1.0);
+		}
+	}
 }
