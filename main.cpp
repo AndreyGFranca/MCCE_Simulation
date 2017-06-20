@@ -41,13 +41,13 @@ typedef struct Celula{
 
 const int 			samples = 1;
 const int           Q = 50;
-const int         	N = pow(64, 2);
+const int         	N = pow(32, 2);
 const int         	N_sqrt = sqrt(N) + 0.5;
 const int 			vezes = 2;
-const double      	eta = 0.5;
+const double      	eta = 0.72;
 const double      	sigma = sqrt(eta / (N * PI));
 //const double      	D = N_sqrt;
-const double      	D = 0.1;
+const double      	D = N_sqrt;
 const double      	delxy = 1.0/ (2.0 * N_sqrt);
 const double        two_delxy = 2.0 * delxy;
 
@@ -105,31 +105,33 @@ std::complex<double> calc_psi_k(Disk disk_k,
 		else if(j == 5)
 			aux = cell_k.down_left;
 		else if (j == 6)
-			aux - cell_k.down;
+			aux = cell_k.down;
 		else if (j == 7)
 			aux = cell_k.down_right;
-		else if (j == 8)
-			aux = &cell_k;
+		//else if (j == 8)
+		//	aux = &cell_k;
 
 		for (int i = 0; i < aux->lista_discos.size(); ++i)
 		{
-			if(dist(disk_k.x, disk_k.y, aux->lista_discos[i]->x, 
-				aux->lista_discos[i]->y) < gamma){
+			/*if(dist(disk_k.x, disk_k.y, aux->lista_discos[i]->x, 
+				aux->lista_discos[i]->y) < 10*gamma 
+				&& disk_k.x != aux->lista_discos[i]->x &&  disk_k.y != aux->lista_discos[i]->y){*/
 				n_neighbor++;
 				delx_dely(disk_k.x, disk_k.y, aux->lista_discos[i]->x, 
 					aux->lista_discos[i]->y, &dx, &dy);
 				angle = std::arg(std::complex<double>(dx, dy));
 				vetor += std::exp(std::complex<double>(0.0,6.0) * std::complex<double>(angle, 0));
-			}
+			//}
 		}	
 			
 	}
 
 	if (n_neighbor > 0)
 	{
-		vetor /= n_neighbor;	
-	}
-
+		vetor /= (double)n_neighbor;	
+		std::cout << "Numero de Vizinhos = " << n_neighbor << std::endl;	
+		std::cout << "Vetor  = " << vetor << std::endl;
+	}	
 	return vetor;
 }
 
@@ -142,6 +144,7 @@ std::complex<double> calc_psi_global(Disk (&disk)[N_sqrt][N_sqrt], Celula (&celu
 		{
 			unsigned int ci = ceil(disk[i][j].x / two_delxy) - 1; // coluna
 			unsigned int cj = ceil(disk[i][j].y / two_delxy) - 1;
+			std::cout << ci << ", " << cj << std::endl;
 			sum_vetor += calc_psi_k(disk[i][j], celula[ci][cj], 0);
 		}
 	}
@@ -392,7 +395,7 @@ int main(){
 	} // fecha o for do tempo
 
 	for(int i = 0; i < Q; i++){
-        erroPsi[i] = std::sqrt(std::fabs(Psi_mod_sq[i] - std::pow(Psi_mod[i], 2))); /// (SAMPLES - 1)));
+        erroPsi[i] = std::sqrt(std::fabs(Psi_mod[i] - std::pow(Psi_mod_sq[i], 2))); /// (SAMPLES - 1)));
     }
 
     for (int i4 = 0; i4 < Q; i4++){

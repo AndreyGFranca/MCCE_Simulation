@@ -1,0 +1,448 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"calc",
+				"calc_psi_global"
+			],
+			[
+				"uper",
+				"upper"
+			],
+			[
+				"com",
+				"complex"
+			],
+			[
+				"down_",
+				"down_right"
+			],
+			[
+				"cell",
+				"cell_k"
+			],
+			[
+				"up_",
+				"up_right"
+			],
+			[
+				"disk",
+				"disk_k"
+			],
+			[
+				"up",
+				"up_right"
+			],
+			[
+				"lista",
+				"lista_discos"
+			],
+			[
+				"vect",
+				"vector"
+			],
+			[
+				"fi",
+				"fprintf\tfprintf …"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "main.cpp",
+			"settings":
+			{
+				"buffer_size": 23068,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/andrey/doc/search/PIBIC/Fevereiro_2017/main_par8/main_par_8.cpp",
+			"settings":
+			{
+				"buffer_size": 14419,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/andrey/doc/search/PIBIC/Evolução/Cadeia De Eventos Em C Part3/ConfiguracaoFinal.c",
+			"settings":
+			{
+				"buffer_size": 9010,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "Packages/Makefile/Make.sublime-build",
+	"build_system_choices":
+	[
+		[
+			[
+				[
+					"Packages/C++/C++ Single File.sublime-build",
+					""
+				],
+				[
+					"Packages/C++/C++ Single File.sublime-build",
+					"Run"
+				],
+				[
+					"Packages/Makefile/Make.sublime-build",
+					""
+				],
+				[
+					"Packages/Makefile/Make.sublime-build",
+					"Clean"
+				],
+				[
+					"Packages/Vintageous/Vintageous.sublime-build",
+					""
+				],
+				[
+					"Packages/Vintageous/Vintageous.sublime-build",
+					"Vintageous - Test (All)"
+				],
+				[
+					"Packages/Vintageous/Vintageous.sublime-build",
+					"Vintageous - Test (This File Only)"
+				]
+			],
+			[
+				"Packages/Makefile/Make.sublime-build",
+				""
+			]
+		]
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 357.0,
+		"last_filter": "Package Control: ",
+		"selected_items":
+		[
+			[
+				"Package Control: ",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: inst",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 462.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/home/andrey/doc/search/PIBIC/Junho 2017/MCCE_Simulation"
+	],
+	"file_history":
+	[
+		"/home/andrey/doc/search/PIBIC/Junho 2017/MCCE_Simulation/resultados.csv",
+		"/home/andrey/doc/search/PIBIC/Junho 2017/MCCE_Simulation/resultados/LxLy_final_N064_eta50_se4_Q50.csv",
+		"/tmp/mozilla_andrey0/main_celulas_2.cpp",
+		"/home/andrey/doc/school/5 periodo/Redes/anoatções aula/a_3_c2.md",
+		"/home/andrey/doc/search/PIBIC/Junho 2017/MCCE_Simulation/Makefile",
+		"/home/andrey/doc/search/PIBIC/Junho 2017/MCCE_Simulation/ConfiguracaoInicial.py",
+		"/home/andrey/doc/search/PIBIC/Junho 2017/MCCE_Simulation/mtwist.c",
+		"/home/andrey/doc/search/PIBIC/Junho 2017/Celulas_Quadrada_Evolucao/main.cpp"
+	],
+	"find":
+	{
+		"height": 48.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"psik",
+			"psi6k",
+			"linha",
+			"down_left",
+			"double",
+			"\t    /*"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"float"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "main.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 23068,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								11088,
+								11088
+							]
+						],
+						"settings":
+						{
+							"highlight_line": false,
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"vintage":
+							{
+								"_vintageous_glue_until_normal_mode": false,
+								"_vintageous_non_interactive": false,
+								"_vintageous_processing_notation": false,
+								"action": null,
+								"action_count": "",
+								"mode": "mode_normal",
+								"motion": null,
+								"motion_count": "",
+								"must_capture_register_name": false,
+								"normal_insert_count": "1",
+								"partial_sequence": "",
+								"register": "\"",
+								"sequence": "",
+								"xpos": 81
+							}
+						},
+						"translation.x": 0.0,
+						"translation.y": 6025.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/home/andrey/doc/search/PIBIC/Fevereiro_2017/main_par8/main_par_8.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 14419,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2030,
+								2030
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true,
+							"vintage":
+							{
+								"action": null,
+								"action_count": "",
+								"mode": "mode_normal",
+								"motion": null,
+								"motion_count": "",
+								"must_capture_register_name": false,
+								"partial_sequence": "",
+								"register": "\"",
+								"sequence": "",
+								"xpos": 4
+							}
+						},
+						"translation.x": 0.0,
+						"translation.y": 726.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/home/andrey/doc/search/PIBIC/Evolução/Cadeia De Eventos Em C Part3/ConfiguracaoFinal.c",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 9010,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3075,
+								3075
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true,
+							"vintage":
+							{
+								"action": null,
+								"action_count": "",
+								"mode": "mode_normal",
+								"motion": null,
+								"motion_count": "",
+								"must_capture_register_name": false,
+								"partial_sequence": "",
+								"register": "\"",
+								"sequence": "",
+								"xpos": 93
+							}
+						},
+						"translation.x": 0.0,
+						"translation.y": 1463.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 25.0
+	},
+	"input":
+	{
+		"height": 35.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 112.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "Packages/Vintageous/Vintageous.sublime-build",
+	"project": "MCCEs.sublime-project",
+	"replace":
+	{
+		"height": 90.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"~/doc/search/PIBIC/Junho 2017/MCCE_Simulation/MCCEs.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+		"_vintageous_last_buffer_search": "394",
+		"_vintageous_last_buffer_search_command": "vi_slash",
+		"_vintageous_last_char_search_command": "vi_t",
+		"_vintageous_last_character_search": "\t",
+		"_vintageous_reset_during_init": true,
+		"vintage":
+		{
+			"_cmdline_cd": "/home/andrey/doc/school/5 periodo/Redes/anoatções aula"
+		}
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 215.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
