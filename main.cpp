@@ -79,18 +79,32 @@ double dist(double L_kx, double L_ky, double L_jx, double L_jy)
     return sqrt(fabs(pow(d_x, 2) + pow(d_y, 2)) );
 }
 
+struct DistanceFunc
+{
+    DistanceFunc( Disk** _d) : d(_d) {}
+
+    bool operator()( Disk** lhs, Disk** rhs) const
+    {
+        return dist(d->x, d->y, lhs.x, lhs.y) < dist(d->x, d->y, rhs.x, rhs.y);
+    }
+
+    private:
+    Disk** d;
+};
+
+
 std::complex<double> calc_psi_k(Disk disk_k, 
 	Celula cell_k,
 	unsigned int k)
 {
 	int n_neighbor = 0;
-	float gamma = 3.0 * sigma;
+	float gamma = 2.8;
 	std::vector<Disk*> k_list;
 	double dx, dy, angle;
 	Celula* aux;
 	std::complex<double> vetor(0.0, 0.0);
 
-	for (int j = 0; j < 9; ++j)
+	for (int j = 0; j < 17; ++j)
 	{
 		if(j == 0)
 			aux = cell_k.right;
@@ -107,27 +121,47 @@ std::complex<double> calc_psi_k(Disk disk_k,
 		else if (j == 6)
 			aux = cell_k.down;
 		else if (j == 7)
-			aux = cell_k.down_right;
+            aux = cell_k.down_right;
 		else if (j == 8)
 			aux = &cell_k;
+		if(j == 9)
+			aux = cell_k.right->right;
+		else if(j == 10)
+			aux = cell_k.up_right->up_right;
+		else if (j == 11)
+			aux = cell_k.upper->upper;
+		else if (j == 12)
+			aux = cell_k.up_left->up_left;
+		else if(j == 13)
+			aux = cell_k.left->left;
+		else if(j == 14)
+			aux = cell_k.down_left->down_left;
+		else if (j == 15)
+			aux = cell_k.down->down;
+		else if (j == 16)
+            aux = cell_k.down_right->down_right;
 
-		for (int i = 0; i < aux->lista_discos.size(); ++i)
-		{
-			if(disk_k.id !=  aux->lista_discos[i]->id){
-				n_neighbor++;
-				delx_dely( aux->lista_discos[i]->x, disk_k.x, disk_k.y,
-					aux->lista_discos[i]->y, &dx, &dy);
-				angle = std::arg(std::complex<double>(dx, dy));
-				vetor += std::exp(std::complex<double>(0.0,6.0) * std::complex<double>(angle, 0));
-			}
+        for(int i = 0; i < aux->lista_discos.size(); i++){
+            k_list.push_back(aux->lista_discos[i]);
         }
-
 	}
+
+    std::sort(k_list.begin(), k_list.end(), DistanceFunc(disk_k));
+
+    for (int i = 0; i < k; ++i)
+    {
+        if(disk_k.id !=  k_list[i]->id){
+            n_neighbor++;
+            delx_dely(k_list[i]->x, k_list[i]->y, disk_k.x, disk_k.y, &dx, &dy);
+            angle = std::arg(std::complex<double>(dx, dy));
+            vetor += std::exp(std::complex<double>(0.0,6.0) * std::complex<double>(angle, 0));
+        }
+    }
 
 	if (n_neighbor > 0)
 	{
 		vetor /= (double)n_neighbor;
-	   //	std::cout << "Numero de Vizinhos = " << n_neighbor << std::endl;
+	  	std::cout << "Numero de Vizinhos = " << n_neighbor << std::endl;
 	//	std::cout << "Vetor  = " << vetor << std::endl;
     }
 	return vetor;
@@ -406,8 +440,8 @@ int main(){
                 myfile.close();
 
                 Psi = calc_psi_global(disk, celula);
-                Psi_mod[i] =  std::abs(Psi); // SAMPLES;
-                Psi_mod_sq[i] =  std::pow( Psi_mod[i], 2); // SAMPLES;
+                Psi_mod[i] +=  std::abs(Psi) / (double) samples;
+                Psi_mod_sq[i] +=  std::pow( Psi_mod[i], 2) / (double) samples; // SAMPLES;
             }
             novoL(disk, celula, D, sigma, N_sqrt);
         } // fecha o for do tempo
