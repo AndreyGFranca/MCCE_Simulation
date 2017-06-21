@@ -4,7 +4,7 @@
 #include <cmath>
 #include <cassert>
 #include <fstream>
-#include <string> 
+#include <string>
 #include "mtwist.h"
 #include <sstream>
 #include <cstdio>
@@ -39,9 +39,9 @@ typedef struct Celula{
 
 #define PI (3.14159265358979323846)
 
-const int 			samples = 1;
+const int 			samples = 20;
 const int           Q = 50;
-const int         	N = pow(32, 2);
+const int         	N = pow(16, 2);
 const int         	N_sqrt = sqrt(N) + 0.5;
 const int 			vezes = 2;
 const double      	eta = 0.72;
@@ -115,21 +115,21 @@ std::complex<double> calc_psi_k(Disk disk_k,
 		{
 			if(disk_k.id !=  aux->lista_discos[i]->id){
 				n_neighbor++;
-				delx_dely(disk_k.x, disk_k.y, aux->lista_discos[i]->x, 
+				delx_dely( aux->lista_discos[i]->x, disk_k.x, disk_k.y,
 					aux->lista_discos[i]->y, &dx, &dy);
 				angle = std::arg(std::complex<double>(dx, dy));
 				vetor += std::exp(std::complex<double>(0.0,6.0) * std::complex<double>(angle, 0));
 			}
-		}	
-			
+        }
+
 	}
 
 	if (n_neighbor > 0)
 	{
-		vetor /= (double)n_neighbor;	
-		std::cout << "Numero de Vizinhos = " << n_neighbor << std::endl;	
-		std::cout << "Vetor  = " << vetor << std::endl;
-	}	
+		vetor /= (double)n_neighbor;
+	   //	std::cout << "Numero de Vizinhos = " << n_neighbor << std::endl;
+	//	std::cout << "Vetor  = " << vetor << std::endl;
+    }
 	return vetor;
 }
 
@@ -137,12 +137,11 @@ std::complex<double> calc_psi_global(Disk (&disk)[N_sqrt][N_sqrt], Celula (&celu
 {
 	std::complex<double> sum_vetor(0.0, 0.0);
 	for (int i = 0; i < N_sqrt; ++i)
-	{	
+	{
 		for (int j = 0; j < N_sqrt; ++j)
 		{
 			unsigned int ci = ceil(disk[i][j].x / two_delxy) - 1; // coluna
 			unsigned int cj = ceil(disk[i][j].y / two_delxy) - 1;
-			std::cout << ci << ", " << cj << std::endl;
 			sum_vetor += calc_psi_k(disk[i][j], celula[ci][cj], 0);
 		}
 	}
@@ -316,11 +315,11 @@ int main(){
 	 * 			  ADCIONANDO DISCOS AS CELULAS  			*
 	 * Adciona a cada celula, o seu respectivo disco 	*
 	 ****************************************************/
-	for (int i = 0; i < N_sqrt; ++i){
-		for (int j = 0; j < N_sqrt; ++j){
-			celula[i][j].lista_discos.push_back(&disk[j][i]);
-		}
-	}
+    for (int i = 0; i < N_sqrt; ++i){
+        for (int j = 0; j < N_sqrt; ++j){
+            celula[i][j].lista_discos.push_back(&disk[j][i]);
+        }
+    }
 
 	int ks = 4;
 
@@ -365,32 +364,54 @@ int main(){
 	// 	}
 	// }
 
-	
-	mt_seed32(ks);
+    for (int k = 0; k < samples; k++){
 
-	for (int i = 0; i <= Q; i++){
+	    mt_seed32(k);
+        // Limpa a lista de discos
+        for (int i = 0; i < N_sqrt; ++i){
+            for (int j = 0; j < N_sqrt; ++j){
+                celula[i][j].lista_discos.clear();
+            }
+        }
 
+        //adciona
+        for (int i = 0; i < N_sqrt; ++i){
+            for (int j = 0; j < N_sqrt; ++j){
+                    celula[i][j].lista_discos.push_back(&disk[j][i]);
+            }
+        }
 
-		if(i % vezes == 0){
-			std::ofstream myfile;
-			std::string s = SSTR( i );
-			printf("Iniciando iteracao: %d\n", i);
-			std::string s2 = "resultados/LxLy_N0" + SSTR( N_sqrt )  + "_eta" + SSTR( 100*eta )+ "_se" + SSTR( ks ) + "_t" + SSTR( i )  + ".csv";
-			myfile.open (s2.c_str());
-			for (int i = 0; i < N_sqrt; ++i){
-				for (int j = 0; j < N_sqrt; ++j){
-					myfile << disk[i][j].x << "," << disk[i][j].y << std::endl;
-				}
-			}
-			myfile.close();
+        // gera configuracao inicial
+        for (int i = 0; i < N_sqrt; i++){
+            for (int j = 0; j < N_sqrt; j++){
+                disk[i][j].x = delxy + i * two_delxy;
+                disk[i][j].y = delxy + j * two_delxy;
+                disk[i][j].id = id_count++;
+            }
+        }
 
-			Psi = calc_psi_global(disk, celula);
-			Psi_mod[i] = (double) std::abs(Psi); // SAMPLES;
-			Psi_mod_sq[i] = (double) std::pow( Psi_mod[i], 2); // SAMPLES;
-		}
-		novoL(disk, celula, D, sigma, N_sqrt);
-		
-	} // fecha o for do tempo
+        std::cout << "iteracao = " << k << std::endl;
+        for (int i = 0; i <= Q; i++){
+            if(i % vezes == 0){
+                std::ofstream myfile;
+                std::string s = SSTR( i );
+                printf("Iniciando iteracao: %d\n", i);
+                std::string s2 = "resultados/LxLy_N0" + SSTR( N_sqrt )  + "_eta" + SSTR( 100*eta )+ "_se" + SSTR( ks ) + "_t" + SSTR( i )  + ".csv";
+                myfile.open (s2.c_str());
+                for (int i = 0; i < N_sqrt; ++i){
+                    for (int j = 0; j < N_sqrt; ++j){
+                        myfile << disk[i][j].x << "," << disk[i][j].y << std::endl;
+                    }
+                }
+                myfile.close();
+
+                Psi = calc_psi_global(disk, celula);
+                Psi_mod[i] =  std::abs(Psi); // SAMPLES;
+                Psi_mod_sq[i] =  std::pow( Psi_mod[i], 2); // SAMPLES;
+            }
+            novoL(disk, celula, D, sigma, N_sqrt);
+        } // fecha o for do tempo
+    }
 
 	for(int i = 0; i < Q; i++){
         erroPsi[i] = std::sqrt(std::fabs(Psi_mod[i] - std::pow(Psi_mod_sq[i], 2))); /// (SAMPLES - 1)));
