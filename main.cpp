@@ -108,20 +108,18 @@ std::complex<double> calc_psi_k(Disk disk_k,
 			aux = cell_k.down;
 		else if (j == 7)
 			aux = cell_k.down_right;
-		//else if (j == 8)
-		//	aux = &cell_k;
+		else if (j == 8)
+			aux = &cell_k;
 
 		for (int i = 0; i < aux->lista_discos.size(); ++i)
 		{
-			/*if(dist(disk_k.x, disk_k.y, aux->lista_discos[i]->x, 
-				aux->lista_discos[i]->y) < 10*gamma 
-				&& disk_k.x != aux->lista_discos[i]->x &&  disk_k.y != aux->lista_discos[i]->y){*/
+			if(disk_k.id !=  aux->lista_discos[i]->id){
 				n_neighbor++;
 				delx_dely(disk_k.x, disk_k.y, aux->lista_discos[i]->x, 
 					aux->lista_discos[i]->y, &dx, &dy);
 				angle = std::arg(std::complex<double>(dx, dy));
 				vetor += std::exp(std::complex<double>(0.0,6.0) * std::complex<double>(angle, 0));
-			//}
+			}
 		}	
 			
 	}
