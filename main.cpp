@@ -81,19 +81,19 @@ double dist(double L_kx, double L_ky, double L_jx, double L_jy)
 
 struct DistanceFunc
 {
-    DistanceFunc( Disk** _d) : d(_d) {}
+    DistanceFunc(const Disk* _d) : d(_d) {}
 
-    bool operator()( Disk** lhs, Disk** rhs) const
+    bool operator()(const Disk* lhs, const Disk* rhs) const
     {
-        return dist(d->x, d->y, lhs.x, lhs.y) < dist(d->x, d->y, rhs.x, rhs.y);
+        return dist(d->x, d->y, lhs->x, lhs->y) < dist(d->x, d->y, rhs->x, rhs->y);
     }
 
     private:
-    Disk** d;
+    const Disk* d;
 };
 
 
-std::complex<double> calc_psi_k(Disk disk_k, 
+std::complex<double> calc_psi_k(Disk* disk_k, 
 	Celula cell_k,
 	unsigned int k)
 {
@@ -150,11 +150,12 @@ std::complex<double> calc_psi_k(Disk disk_k,
 
     for (int i = 0; i < k; ++i)
     {
-        if(disk_k.id !=  k_list[i]->id){
+        if(disk_k->id !=  k_list[i]->id){
             n_neighbor++;
-            delx_dely(k_list[i]->x, k_list[i]->y, disk_k.x, disk_k.y, &dx, &dy);
+            delx_dely(k_list[i]->x, k_list[i]->y, disk_k->x, disk_k->y, &dx, &dy);
             angle = std::arg(std::complex<double>(dx, dy));
             vetor += std::exp(std::complex<double>(0.0,6.0) * std::complex<double>(angle, 0));
+            ///std::cout << dist(disk_k->x, disk_k->y, k_list[i]->x, k_list[i]->y) << std::endl; 
         }
     }
 
@@ -162,7 +163,7 @@ std::complex<double> calc_psi_k(Disk disk_k,
 	{
 		vetor /= (double)n_neighbor;
 	  	std::cout << "Numero de Vizinhos = " << n_neighbor << std::endl;
-	//	std::cout << "Vetor  = " << vetor << std::endl;
+	    ///std::cout << "Vetor  = " << vetor << std::endl;
     }
 	return vetor;
 }
@@ -176,7 +177,7 @@ std::complex<double> calc_psi_global(Disk (&disk)[N_sqrt][N_sqrt], Celula (&celu
 		{
 			unsigned int ci = ceil(disk[i][j].x / two_delxy) - 1; // coluna
 			unsigned int cj = ceil(disk[i][j].y / two_delxy) - 1;
-			sum_vetor += calc_psi_k(disk[i][j], celula[ci][cj], 0);
+			sum_vetor += calc_psi_k(&disk[i][j], celula[ci][cj], 6);
 		}
 	}
 
