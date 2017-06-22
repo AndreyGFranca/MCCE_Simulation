@@ -155,7 +155,6 @@ std::complex<double> calc_psi_k(Disk* disk_k,
             delx_dely(k_list[i]->x, k_list[i]->y, disk_k->x, disk_k->y, &dx, &dy);
             angle = std::arg(std::complex<double>(dx, dy));
             vetor += std::exp(std::complex<double>(0.0,6.0) * std::complex<double>(angle, 0));
-            ///std::cout << dist(disk_k->x, disk_k->y, k_list[i]->x, k_list[i]->y) << std::endl; 
         }
     }
 
